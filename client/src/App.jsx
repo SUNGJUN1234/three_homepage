@@ -1,12 +1,16 @@
-// import React from 'react';
-// import ServerStatus from './components/ServerStatus';
-// import Test from './components/Test';
+import React from 'react';
+import {BrowserRouter, Route, Routes} from 'react-router-dom'
+import HomeView from './views/HomeView';
+import AboutView from './views/AboutView';
 
 function App() {
   return (
-    <div className="App">
-      dd
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path='/' element={<HomeView />} />
+        <Route path='/about' element={<AboutView />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

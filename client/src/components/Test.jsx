@@ -84,8 +84,7 @@ const Test = () => {
         };
 
         animate();
-
-        // Cleanup on component unmount
+        
         return () => {
             window.removeEventListener('resize', handleResize);
             mountRef.current.removeChild(renderer.domElement);

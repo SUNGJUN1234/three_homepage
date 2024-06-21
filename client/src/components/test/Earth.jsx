@@ -2,13 +2,14 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import earthTexture from "../../assets/img/earthmap.jpg";
+import getStarfield from '../../assets/js/getStarfield.js';
 
 const Earth = () => {
     const mountRef = useRef(null);
     const sceneRef = useRef(null);
     const cameraRef = useRef(null);
     const rendererRef = useRef(null);
-    const groupRef = useRef(null);
+    const earthGroupRef = useRef(null);
 
     const _setupCamera = () => {
         // Camera setup
@@ -28,8 +29,8 @@ const Earth = () => {
         // Geometry and Material setup
         const loader = new THREE.TextureLoader();
 
-        const geometry = new THREE.IcosahedronGeometry(1, 12);
-        const material = new THREE.MeshPhongMaterial({ 
+        const earthGeometry = new THREE.IcosahedronGeometry(1, 12);
+        const earthMaterial = new THREE.MeshPhongMaterial({ 
             map: loader.load(earthTexture,
                 (texture) => {
                     console.log(texture);
@@ -40,13 +41,16 @@ const Earth = () => {
                 }
             )
          });
-        const earthMesh = new THREE.Mesh(geometry, material);
+        const earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
         
+        const stars = getStarfield({numStars: 2000});
+
         // Group setup
-        const group = new THREE.Group();
-        group.add(earthMesh);
-        sceneRef.current.add(group);
-        groupRef.current = group;
+        const earthGroup = new THREE.Group();
+        earthGroup.add(earthMesh);
+        earthGroup.add(stars);
+        sceneRef.current.add(earthGroup);
+        earthGroupRef.current = earthGroup;
     };
 
     const _setupControls = (camera, renderer) => {
@@ -85,8 +89,8 @@ const Earth = () => {
         // Animation loop
         const animate = (time) => {
             time *= 0.0005;  // ms to seconds
-            groupRef.current.rotation.x = time;
-            groupRef.current.rotation.y = time;
+            // earthGroupRef.current.rotation.x = time;
+            // earthGroupRef.current.rotation.y = time;
 
             renderer.render(scene, camera);
             requestAnimationFrame(animate);

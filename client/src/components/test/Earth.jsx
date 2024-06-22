@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import * as THREE from 'three';
 import earthTexture from "../../assets/img/earth_atmos.jpg";
 import earthCloudsTexture from "../../assets/img/earth_clouds.png";
-import earthNomalTexture from "../../assets/img/earth_normal.jpg";
+import earthNormalTexture from "../../assets/img/earth_normal.jpg";
 import earthSpecularTexture from "../../assets/img/earth_specular.jpg";
 import getStarfield from '../../assets/js/getStarfield.js';
 import { getFresnelMat } from '../../assets/js/getFrensnelMat.js';
@@ -35,18 +35,8 @@ const Earth = ({ children }) => {
         sceneRef.current.add(light);
     };
 
-    const _setupModel = async () => {
+    const _setupModel = () => {
         const loader = new THREE.TextureLoader();
-        const loadTexture = (path) => new Promise((resolve, reject) => {
-            loader.load(path, resolve, undefined, reject);
-        });
-
-        const [earthTex, cloudsTex, normalTex, specularTex] = await Promise.all([
-            loadTexture(earthTexture),
-            loadTexture(earthCloudsTexture),
-            loadTexture(earthNomalTexture),
-            loadTexture(earthSpecularTexture)
-        ]);
 
         const earthGroup = new THREE.Group();
 
@@ -55,16 +45,16 @@ const Earth = ({ children }) => {
         const earthMaterial = new THREE.MeshPhongMaterial({
             specular: 0x7c7c7c,
             shininess: 15,
-            map: earthTex,
-            specularMap: specularTex,
-            normalMap: normalTex,
+            map: loader.load(earthTexture),
+            specularMap: loader.load(earthSpecularTexture),
+            normalMap: loader.load(earthNormalTexture),
         });
         earthMaterial.map.colorSpace = THREE.SRGBColorSpace;
         const earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
         earthGroup.add(earthMesh);
 
         const cloudsMat = new THREE.MeshLambertMaterial({
-            map: cloudsTex,
+            map: loader.load(earthCloudsTexture),
             transparent: true,
         });
         const cloudsMesh = new THREE.Mesh(earthGeometry, cloudsMat);
@@ -116,7 +106,8 @@ const Earth = ({ children }) => {
         sceneRef.current = scene;
 
         _setupCamera();
-        _setupModel().then(() => {
+        _setupModel()
+
             _setupLight();
             const camera = cameraRef.current;
             if (location.pathname === "/") {
@@ -166,7 +157,6 @@ const Earth = ({ children }) => {
                 earthGroupRef.current = null;
                 cloudsMeshRef.current = null;
             };
-        });
     }, []);
 
     useEffect(() => {

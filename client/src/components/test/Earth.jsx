@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import earthTexture from "../../assets/img/earthmap.jpg";
-import earthLightTexture from "../../assets/img/earthlights.jpg";
-import earthCloudsTexture from "../../assets/img/earthclouds.jpg";
-import earthCloudsTransTexture from "../../assets/img/earthcloudstrans.jpg";
+import earthTexture from "../../assets/img/earth_atmos.jpg";
+import earthCloudsTexture from "../../assets/img/earth_clouds.png";
+import earthNomalTexture from "../../assets/img/earth_normal.jpg";
+import earthSpecularTexture from "../../assets/img/earth_specular.jpg";
 import getStarfield from '../../assets/js/getStarfield.js';
 import { getFresnelMat } from '../../assets/js/getFrensnelMat.js';
 
@@ -14,6 +14,7 @@ const Earth = () => {
     const cameraRef = useRef(null);
     const rendererRef = useRef(null);
     const earthGroupRef = useRef(null);
+    const cloudsMeshRef = useRef(null);
 
     const _setupCamera = () => {
         // Camera setup
@@ -24,7 +25,7 @@ const Earth = () => {
 
     const _setupLight = () => {
         // Light setup
-        const light = new THREE.DirectionalLight(0xffffff, 0.1);
+        const light = new THREE.DirectionalLight(0xffffff, 1);
         light.position.set(-3, 2, 4);
         sceneRef.current.add(light);
     };
@@ -37,57 +38,30 @@ const Earth = () => {
         const detail = 8;
         const earthGeometry = new THREE.IcosahedronGeometry(1, detail);
         const earthMaterial = new THREE.MeshPhongMaterial({ 
-            map: loader.load(earthTexture,
-                (texture) => {
-                    console.log(texture);
-                },
-                undefined,
-                (err) => {
-                    console.error('An error occurred while loading the texture', err);
-                }
-            )
+            specular: 0x7c7c7c,
+            shininess: 15,
+            map: loader.load(earthTexture),
+            specularMap: loader.load(earthSpecularTexture),
+            normalMap: loader.load(earthNomalTexture),
+            // normalScale: new THREE.Vector2( 0.85, - 0.85 )
          });
+         earthMaterial.map.colorSpace = THREE.SRGBColorSpace;
         const earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
         earthGroup.add(earthMesh);
 
         // mat setup
-        const lightsMat = new THREE.MeshBasicMaterial({
-            map: loader.load(earthLightTexture,
-                (texture) => {
-                    console.log(texture);
-                },
-                undefined,
-                (err) => {
-                    console.error('An error occurred while loading the texture', err);
-                }
-            ),
-            blending: THREE.AdditiveBlending,
-        })
-        const lightsMesh = new THREE.Mesh(earthGeometry, lightsMat);
-        earthGroup.add(lightsMesh);
-
-        const cloudsMat = new THREE.MeshStandardMaterial({
-            map: loader.load(earthCloudsTexture,
-                (texture) => {
-                    console.log(texture);
-                },
-                undefined,
-                (err) => {
-                    console.error('An error occurred while loading the texture', err);
-                }
-            ),
+        const cloudsMat = new THREE.MeshLambertMaterial({
+            map: loader.load(earthCloudsTexture),
             transparent: true,
-            opacity: 0.8,
-            blending: THREE.AdditiveBlending,
-            // alphaMap: loader.load(earthCloudsTransTexture),
         })
         const cloudsMesh = new THREE.Mesh(earthGeometry, cloudsMat);
         cloudsMesh.scale.setScalar(1.003);
         earthGroup.add(cloudsMesh);
+        cloudsMeshRef.current = cloudsMesh;
 
         const fresnelMat = getFresnelMat();
         const glowMesh = new THREE.Mesh(earthGeometry, fresnelMat);
-        glowMesh.scale.setScalar(1.003);
+        glowMesh.scale.setScalar(1.005);
         earthGroup.add(glowMesh);
 
         // star setup
@@ -138,8 +112,10 @@ const Earth = () => {
         // Animation loop
         const animate = (time) => {
             time *= 0.0005;  // ms to seconds
-            // earthGroupRef.current.rotation.x = time;
             earthGroupRef.current.rotation.y = -time / 5;
+            if (cloudsMeshRef.current) {
+                cloudsMeshRef.current.rotation.y = -time / 20; // clouds 더 빠르게 회전
+            }
 
             renderer.render(scene, camera);
             requestAnimationFrame(animate);

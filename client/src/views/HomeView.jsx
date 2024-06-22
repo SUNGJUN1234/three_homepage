@@ -17,6 +17,7 @@ const HomeView = () => {
         <News />
       </Main>
       <Footer /> */}
+      <Header />
       <Earth />
     </>
   )

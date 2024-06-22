@@ -4,9 +4,10 @@
 }
 .header__inner {
     @include flex-between;
-    background-color: rgba(116, 99, 99, 0.1);
+    background-color: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(15px);
     padding: 1rem;
+    color: var(--white);
 
     .header__logo {
         font-size: 0.9rem;
@@ -17,7 +18,7 @@
         em {
             font-size: 10px;
             display: block;
-            color: var(--black200);
+            color: var(--white);
         }
     }
     .header__nav {
@@ -71,7 +72,7 @@
                     content: '';
                     width: calc(100% - 28px);
                     height: 1px;
-                    background-color: var(--black);
+                    background-color: var(--white);
                     position: absolute;
                     left: 14px;
                     bottom: 10px;
@@ -99,7 +100,7 @@
             display: block;
             width: 40px;
             height: 2px;
-            background-color: var(--black);
+            background-color: var(--white);
             margin-top: 19px;
             position: relative;
 
@@ -107,7 +108,7 @@
                 content: "";
                 width: 40px;
                 height: 2px;
-                background-color: var(--black);
+                background-color: var(--white);
                 position: absolute;
                 right: 0;
                 top: 6px;
@@ -117,7 +118,7 @@
                 content: "";
                 width: 40px;
                 height: 2px;
-                background-color: var(--black);
+                background-color: var(--white);
                 position: absolute;
                 left: 0;
                 bottom: 6px;

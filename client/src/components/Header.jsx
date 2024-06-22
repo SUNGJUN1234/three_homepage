@@ -1,13 +1,14 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { Link } from "react-router-dom"; // React Router의 Link 컴포넌트를 사용합니다.
 
 const headerNav = [
     {
         title: "intro",
-        url: "#intro"
+        url: "/#intro" // URL을 적절히 수정합니다.
     },
     {
         title: "news",
-        url: "#news"
+        url: "/#news" // URL을 적절히 수정합니다.
     }
 ];
 
@@ -22,13 +23,13 @@ const Header = () => {
         <header id="header" role="banner">
             <div className="header__inner">
                 <div className="header__logo">
-                    <a href="/">Homepage<em>three.js</em></a>
+                    <Link to="/">Homepage<em>three.js</em></Link>
                 </div>
                 <nav className={`header__nav ${show ? "show" : ""}`} role="navigation" aria-label="메인 메뉴">
                     <ul>
                         {headerNav.map((nav, key) => (
                             <li key={key}>
-                                <a href={nav.url}>{nav.title}</a>
+                                <Link to={nav.url}>{nav.title}</Link>
                             </li>
                         ))}
                     </ul>

@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import earthTexture from "../../assets/img/earth_atmos.jpg";
 import earthCloudsTexture from "../../assets/img/earth_clouds.png";
 import earthNomalTexture from "../../assets/img/earth_normal.jpg";
@@ -15,11 +14,13 @@ const Earth = () => {
     const rendererRef = useRef(null);
     const earthGroupRef = useRef(null);
     const cloudsMeshRef = useRef(null);
+    const mouseXRef = useRef(0);
+    const mouseYRef = useRef(0);
 
     const _setupCamera = () => {
         // Camera setup
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 10;
+        camera.position.z = 4;
         cameraRef.current = camera;
     };
 
@@ -53,7 +54,7 @@ const Earth = () => {
         const cloudsMat = new THREE.MeshLambertMaterial({
             map: loader.load(earthCloudsTexture),
             transparent: true,
-        })
+        });
         const cloudsMesh = new THREE.Mesh(earthGeometry, cloudsMat);
         cloudsMesh.scale.setScalar(1.003);
         earthGroup.add(cloudsMesh);
@@ -70,18 +71,14 @@ const Earth = () => {
 
         sceneRef.current.add(earthGroup);
         earthGroupRef.current = earthGroup;
-
     };
 
-    const _setupControls = (camera, renderer) => {
-        // OrbitControls setup
-        new OrbitControls(camera, renderer.domElement);
+    const handleMouseMove = (event) => {
+        mouseXRef.current = (event.clientX / window.innerWidth) * 2 - 1;
+        mouseYRef.current = -(event.clientY / window.innerHeight) * 2 + 1;
     };
 
     useEffect(() => {
-
-
-        
         // Renderer setup
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setPixelRatio(window.devicePixelRatio);
@@ -98,7 +95,7 @@ const Earth = () => {
         _setupLight();
         const camera = cameraRef.current;
 
-        _setupControls(camera, renderer);
+        document.addEventListener('mousemove', handleMouseMove);
 
         // Handle window resize
         const handleResize = () => {
@@ -117,14 +114,22 @@ const Earth = () => {
                 cloudsMeshRef.current.rotation.y = -time / 20; // clouds 더 빠르게 회전
             }
 
+            const cameraSpeed = 2;
+
+            // 카메라 위치 업데이트
+            camera.position.x += (mouseXRef.current * cameraSpeed - camera.position.x) * 0.05;
+            camera.position.y += (mouseYRef.current * cameraSpeed - camera.position.y) * 0.05;
+            camera.lookAt(scene.position);
+
             renderer.render(scene, camera);
             requestAnimationFrame(animate);
         };
 
         animate();
-        
+
         return () => {
             window.removeEventListener('resize', handleResize);
+            document.removeEventListener('mousemove', handleMouseMove);
             mountRef.current.removeChild(renderer.domElement);
             renderer.dispose();
         };

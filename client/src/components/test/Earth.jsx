@@ -17,6 +17,7 @@ const Earth = () => {
     const cloudsMeshRef = useRef(null);
     const mouseXRef = useRef(0);
     const mouseYRef = useRef(0);
+    const animationRef = useRef(null);
 
     const _setupCamera = () => {
         // Camera setup
@@ -32,27 +33,37 @@ const Earth = () => {
         sceneRef.current.add(light);
     };
 
-    const _setupModel = () => {
-        // Geometry and Material setup
+    const _setupModel = async () => {
+       // Geometry and Material setup
         const loader = new THREE.TextureLoader();
+        const loadTexture = (path) => new Promise((resolve, reject) => {
+            loader.load(path, resolve, undefined, reject);
+        });
+
+        const [earthTex, cloudsTex, normalTex, specularTex] = await Promise.all([
+            loadTexture(earthTexture),
+            loadTexture(earthCloudsTexture),
+            loadTexture(earthNomalTexture),
+            loadTexture(earthSpecularTexture)
+        ]);
+
         const earthGroup = new THREE.Group();
 
         const detail = 8;
         const earthGeometry = new THREE.IcosahedronGeometry(1, detail);
-        const earthMaterial = new THREE.MeshPhongMaterial({ 
+        const earthMaterial = new THREE.MeshPhongMaterial({
             specular: 0x7c7c7c,
             shininess: 15,
-            map: loader.load(earthTexture),
-            specularMap: loader.load(earthSpecularTexture),
-            normalMap: loader.load(earthNomalTexture),
-            // normalScale: new THREE.Vector2( 0.85, - 0.85 )
-         });
-         earthMaterial.map.colorSpace = THREE.SRGBColorSpace;
+            map: earthTex,
+            specularMap: specularTex,
+            normalMap: normalTex,
+        });
+        earthMaterial.map.colorSpace = THREE.SRGBColorSpace;
         const earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
         earthGroup.add(earthMesh);
 
         const cloudsMat = new THREE.MeshLambertMaterial({
-            map: loader.load(earthCloudsTexture),
+            map: cloudsTex,
             transparent: true,
         });
         const cloudsMesh = new THREE.Mesh(earthGeometry, cloudsMat);
@@ -91,53 +102,64 @@ const Earth = () => {
         sceneRef.current = scene;
 
         _setupCamera();
-        _setupModel();
-        _setupLight();
-        const camera = cameraRef.current;
+        _setupModel().then(() => {
+            _setupLight();
+            const camera = cameraRef.current;
 
-        document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mousemove', handleMouseMove);
 
         // Handle window resize
-        const handleResize = () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        };
+            const handleResize = () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            };
 
-        window.addEventListener('resize', handleResize);
+            window.addEventListener('resize', handleResize);
 
         // Animation loop
-        const animate = (time) => {
-            time *= 0.0005;  // ms to seconds
-            earthGroupRef.current.rotation.y = -time / 5;
-            if (cloudsMeshRef.current) {
-                cloudsMeshRef.current.rotation.y = -time / 20; // clouds 더 빠르게 회전
-            }
+            const animate = (time) => {
+                time *= 0.0005;  // ms to seconds
+                earthGroupRef.current.rotation.y = -time / 5;
+                if (cloudsMeshRef.current) {
+                    cloudsMeshRef.current.rotation.y = -time / 20; // clouds 더 빠르게 회전
+                }
 
-            const cameraSpeed = 2;
+                const cameraSpeed = 2;
 
-            // 카메라 위치 업데이트
-            camera.position.x += (mouseXRef.current * cameraSpeed - camera.position.x) * 0.05;
-            camera.position.y += (mouseYRef.current * cameraSpeed - camera.position.y) * 0.05;
-            camera.lookAt(scene.position);
+                // 카메라 위치 업데이트
+                camera.position.x += (mouseXRef.current * cameraSpeed - camera.position.x) * 0.05;
+                camera.position.y += (mouseYRef.current * cameraSpeed - camera.position.y) * 0.05;
+                camera.lookAt(scene.position);
 
-            renderer.render(scene, camera);
-            requestAnimationFrame(animate);
-        };
+                renderer.render(scene, camera);
+                animationRef.current = requestAnimationFrame(animate);
+            };
 
-        animate();
+            animate();
 
-        return () => {
-            window.removeEventListener('resize', handleResize);
-            document.removeEventListener('mousemove', handleMouseMove);
-            mountRef.current.removeChild(renderer.domElement);
-            renderer.dispose();
-        };
+            return () => {
+                window.removeEventListener('resize', handleResize);
+                document.removeEventListener('mousemove', handleMouseMove);
+                cancelAnimationFrame(animationRef.current);
+                if (mountRef.current && rendererRef.current) {
+                    mountRef.current.removeChild(renderer.domElement);
+                    renderer.dispose();
+                }
+                if (sceneRef.current) {
+                    sceneRef.current.clear();
+                }
+                cameraRef.current = null;
+                rendererRef.current = null;
+                sceneRef.current = null;
+                earthGroupRef.current = null;
+                cloudsMeshRef.current = null;
+            };
+        });
     }, []);
 
     return (
-        <div ref={mountRef}>
-        </div>
+        <div ref={mountRef}></div>
     );
 };
 

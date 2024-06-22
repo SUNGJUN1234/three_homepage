@@ -6,6 +6,7 @@ import earthNomalTexture from "../../assets/img/earth_normal.jpg";
 import earthSpecularTexture from "../../assets/img/earth_specular.jpg";
 import getStarfield from '../../assets/js/getStarfield.js';
 import { getFresnelMat } from '../../assets/js/getFrensnelMat.js';
+import { debounce } from 'lodash';
 
 const Earth = () => {
     const mountRef = useRef(null);
@@ -50,7 +51,6 @@ const Earth = () => {
         const earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
         earthGroup.add(earthMesh);
 
-        // mat setup
         const cloudsMat = new THREE.MeshLambertMaterial({
             map: loader.load(earthCloudsTexture),
             transparent: true,
@@ -73,10 +73,10 @@ const Earth = () => {
         earthGroupRef.current = earthGroup;
     };
 
-    const handleMouseMove = (event) => {
+    const handleMouseMove = debounce((event) => {
         mouseXRef.current = (event.clientX / window.innerWidth) * 2 - 1;
         mouseYRef.current = -(event.clientY / window.innerHeight) * 2 + 1;
-    };
+    }, 10);
 
     useEffect(() => {
         // Renderer setup

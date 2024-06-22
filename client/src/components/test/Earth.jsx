@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import * as THREE from 'three';
 import earthTexture from "../../assets/img/earth_atmos.jpg";
 import earthCloudsTexture from "../../assets/img/earth_clouds.png";
@@ -18,23 +19,23 @@ const Earth = ({ children }) => {
     const mouseXRef = useRef(0);
     const mouseYRef = useRef(0);
     const animationRef = useRef(null);
+    const location = useLocation();
+    const targetPositionRef = useRef({ x: 0, y: 0, z: 4 }); // 카메라의 목표 위치
+    const debouncedHandleMouseMove = useRef(null);
 
     const _setupCamera = () => {
-        // Camera setup
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 4;
+        camera.position.set(targetPositionRef.current.x, targetPositionRef.current.y, targetPositionRef.current.z); // 초기 카메라 위치 설정
         cameraRef.current = camera;
     };
 
     const _setupLight = () => {
-        // Light setup
         const light = new THREE.DirectionalLight(0xffffff, 1);
         light.position.set(-3, 2, 4);
         sceneRef.current.add(light);
     };
 
     const _setupModel = async () => {
-       // Geometry and Material setup
         const loader = new THREE.TextureLoader();
         const loadTexture = (path) => new Promise((resolve, reject) => {
             loader.load(path, resolve, undefined, reject);
@@ -76,7 +77,6 @@ const Earth = ({ children }) => {
         glowMesh.scale.setScalar(1.005);
         earthGroup.add(glowMesh);
 
-        // star setup
         const stars = getStarfield();
         sceneRef.current.add(stars);
 
@@ -84,20 +84,34 @@ const Earth = ({ children }) => {
         earthGroupRef.current = earthGroup;
     };
 
-    const handleMouseMove = debounce((event) => {
+    const handleMouseMove = useCallback((event) => {
         mouseXRef.current = (event.clientX / window.innerWidth) * 2 - 1;
         mouseYRef.current = -(event.clientY / window.innerHeight) * 2 + 1;
-    }, 10);
+    }, []);
 
     useEffect(() => {
-        // Renderer setup
+        debouncedHandleMouseMove.current = debounce(handleMouseMove, 10);
+    }, [handleMouseMove]);
+
+    const updateCameraPosition = (pathname) => {
+        if (pathname === "/") {
+            targetPositionRef.current.z = 4;
+            document.addEventListener('mousemove', debouncedHandleMouseMove.current);
+        } else if (pathname === "/about") {
+            targetPositionRef.current.z = 2;
+            mouseXRef.current = 0;
+            mouseYRef.current = 0;
+            document.removeEventListener('mousemove', debouncedHandleMouseMove.current);
+        }
+    };
+
+    useEffect(() => {
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth, window.innerHeight);
         mountRef.current.appendChild(renderer.domElement);
         rendererRef.current = renderer;
 
-        // Scene setup
         const scene = new THREE.Scene();
         sceneRef.current = scene;
 
@@ -105,10 +119,9 @@ const Earth = ({ children }) => {
         _setupModel().then(() => {
             _setupLight();
             const camera = cameraRef.current;
-
-            document.addEventListener('mousemove', handleMouseMove);
-
-        // Handle window resize
+            if (location.pathname === "/") {
+                document.addEventListener('mousemove', debouncedHandleMouseMove.current);
+            }
             const handleResize = () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
@@ -117,19 +130,17 @@ const Earth = ({ children }) => {
 
             window.addEventListener('resize', handleResize);
 
-        // Animation loop
             const animate = (time) => {
-                time *= 0.0005;  // ms to seconds
+                time *= 0.0005;
                 earthGroupRef.current.rotation.y = -time / 5;
                 if (cloudsMeshRef.current) {
-                    cloudsMeshRef.current.rotation.y = -time / 20; // clouds 더 빠르게 회전
+                    cloudsMeshRef.current.rotation.y = -time / 20;
                 }
 
                 const cameraSpeed = 2;
-
-                // 카메라 위치 업데이트
                 camera.position.x += (mouseXRef.current * cameraSpeed - camera.position.x) * 0.05;
                 camera.position.y += (mouseYRef.current * cameraSpeed - camera.position.y) * 0.05;
+                camera.position.z += (targetPositionRef.current.z - camera.position.z) * 0.05;
                 camera.lookAt(scene.position);
 
                 renderer.render(scene, camera);
@@ -140,7 +151,7 @@ const Earth = ({ children }) => {
 
             return () => {
                 window.removeEventListener('resize', handleResize);
-                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mousemove', debouncedHandleMouseMove.current);
                 cancelAnimationFrame(animationRef.current);
                 if (mountRef.current && rendererRef.current) {
                     mountRef.current.removeChild(renderer.domElement);
@@ -157,6 +168,10 @@ const Earth = ({ children }) => {
             };
         });
     }, []);
+
+    useEffect(() => {
+        updateCameraPosition(location.pathname);
+    }, [location.pathname]);
 
     return (
         <div ref={mountRef} style={{ position: 'relative', width: '100vw', height: '100vh' }}>

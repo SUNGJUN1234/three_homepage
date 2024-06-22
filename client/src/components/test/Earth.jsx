@@ -8,7 +8,7 @@ import getStarfield from '../../assets/js/getStarfield.js';
 import { getFresnelMat } from '../../assets/js/getFrensnelMat.js';
 import { debounce } from 'lodash';
 
-const Earth = () => {
+const Earth = ({ children }) => {
     const mountRef = useRef(null);
     const sceneRef = useRef(null);
     const cameraRef = useRef(null);
@@ -159,7 +159,11 @@ const Earth = () => {
     }, []);
 
     return (
-        <div ref={mountRef}></div>
+        <div ref={mountRef} style={{ position: 'relative', width: '100vw', height: '100vh' }}>
+            {children && <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
+                {children}
+            </div>}
+        </div>
     );
 };
 

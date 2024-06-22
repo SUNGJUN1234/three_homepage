@@ -9,6 +9,10 @@ const headerNav = [
     {
         title: "news",
         url: "/#news" // URL을 적절히 수정합니다.
+    },
+    {
+        title: "about",
+        url: "/about" // URL을 적절히 수정합니다.
     }
 ];
 

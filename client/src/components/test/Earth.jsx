@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import * as THREE from 'three';
@@ -165,11 +166,15 @@ const Earth = ({ children }) => {
 
     return (
         <div ref={mountRef} style={{ position: 'relative', width: '100vw', height: '100vh' }}>
-            {children && <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
+            <div key={location.key} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
                 {children}
-            </div>}
+            </div>
         </div>
     );
+};
+
+Earth.propTypes = {
+    children: PropTypes.node
 };
 
 export default Earth;

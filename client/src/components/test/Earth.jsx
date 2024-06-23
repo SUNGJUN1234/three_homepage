@@ -17,16 +17,16 @@ const Earth = ({ children }) => {
     const rendererRef = useRef(null);
     const earthGroupRef = useRef(null);
     const cloudsMeshRef = useRef(null);
-    const mouseXRef = useRef(0);
-    const mouseYRef = useRef(0);
     const animationRef = useRef(null);
     const location = useLocation();
-    const targetPositionRef = useRef({ x: 0, y: 0, z: 4 }); // 카메라의 목표 위치
     const debouncedHandleMouseMove = useRef(null);
+    const targetPositionRef = useRef({ x: 0, y: 0, z: 4 });
+    const targetAngleRef = useRef({ x: 0, y: 0, z: 0 });
 
     const _setupCamera = () => {
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(targetPositionRef.current.x, targetPositionRef.current.y, targetPositionRef.current.z); // 초기 카메라 위치 설정
+        camera.position.set(targetPositionRef.current.x, targetPositionRef.current.y, targetPositionRef.current.z);
+        camera.rotation.set(targetAngleRef.current.x, targetAngleRef.current.y, targetAngleRef.current.z);
         cameraRef.current = camera;
     };
 
@@ -76,8 +76,8 @@ const Earth = ({ children }) => {
     };
 
     const handleMouseMove = useCallback((event) => {
-        mouseXRef.current = (event.clientX / window.innerWidth) * 2 - 1;
-        mouseYRef.current = -(event.clientY / window.innerHeight) * 2 + 1;
+        targetPositionRef.current.x = (event.clientX / window.innerWidth) * 2 - 1;
+        targetPositionRef.current.y = -(event.clientY / window.innerHeight) * 2 + 1;
     }, []);
 
     useEffect(() => {
@@ -89,12 +89,14 @@ const Earth = ({ children }) => {
             targetPositionRef.current.z = 4;
             document.addEventListener('mousemove', debouncedHandleMouseMove.current);
         } else if (pathname === "/about") {
-            targetPositionRef.current.z = 2;
-            mouseXRef.current = 0;
-            mouseYRef.current = 0;
             document.removeEventListener('mousemove', debouncedHandleMouseMove.current);
+            targetPositionRef.current = { x: 0, y: 0, z: 2 };
         }
     };
+
+    useEffect(() => {
+        updateCameraPosition(location.pathname);
+    }, [location.pathname]);
 
     useEffect(() => {
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -107,62 +109,58 @@ const Earth = ({ children }) => {
         sceneRef.current = scene;
 
         _setupCamera();
-        _setupModel()
+        _setupModel();
+        _setupLight();
+        
+        const camera = cameraRef.current;
+        if (location.pathname === "/") {
+            document.addEventListener('mousemove', debouncedHandleMouseMove.current);
+        }
+        const handleResize = () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        };
 
-            _setupLight();
-            const camera = cameraRef.current;
-            if (location.pathname === "/") {
-                document.addEventListener('mousemove', debouncedHandleMouseMove.current);
+        window.addEventListener('resize', handleResize);
+
+        const animate = (time) => {
+            time *= 0.0005;
+            earthGroupRef.current.rotation.y = -time / 5;
+            if (cloudsMeshRef.current) {
+                cloudsMeshRef.current.rotation.y = -time / 20;
             }
-            const handleResize = () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            };
 
-            window.addEventListener('resize', handleResize);
+            const cameraSpeed = 2;
+            camera.position.x += (targetPositionRef.current.x * cameraSpeed - camera.position.x) * 0.05;
+            camera.position.y += (targetPositionRef.current.y - camera.position.y) * 0.05;
+            camera.position.z += (targetPositionRef.current.z - camera.position.z) * 0.05;
+            camera.lookAt(scene.position);
 
-            const animate = (time) => {
-                time *= 0.0005;
-                earthGroupRef.current.rotation.y = -time / 5;
-                if (cloudsMeshRef.current) {
-                    cloudsMeshRef.current.rotation.y = -time / 20;
-                }
+            renderer.render(scene, camera);
+            animationRef.current = requestAnimationFrame(animate);
+        };
 
-                const cameraSpeed = 2;
-                camera.position.x += (mouseXRef.current * cameraSpeed - camera.position.x) * 0.05;
-                camera.position.y += (mouseYRef.current * cameraSpeed - camera.position.y) * 0.05;
-                camera.position.z += (targetPositionRef.current.z - camera.position.z) * 0.05;
-                camera.lookAt(scene.position);
+        animate();
 
-                renderer.render(scene, camera);
-                animationRef.current = requestAnimationFrame(animate);
-            };
-
-            animate();
-
-            return () => {
-                window.removeEventListener('resize', handleResize);
-                document.removeEventListener('mousemove', debouncedHandleMouseMove.current);
-                cancelAnimationFrame(animationRef.current);
-                if (mountRef.current && rendererRef.current) {
-                    mountRef.current.removeChild(renderer.domElement);
-                    renderer.dispose();
-                }
-                if (sceneRef.current) {
-                    sceneRef.current.clear();
-                }
-                cameraRef.current = null;
-                rendererRef.current = null;
-                sceneRef.current = null;
-                earthGroupRef.current = null;
-                cloudsMeshRef.current = null;
-            };
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            document.removeEventListener('mousemove', debouncedHandleMouseMove.current);
+            cancelAnimationFrame(animationRef.current);
+            if (mountRef.current && rendererRef.current) {
+                mountRef.current.removeChild(renderer.domElement);
+                renderer.dispose();
+            }
+            if (sceneRef.current) {
+                sceneRef.current.clear();
+            }
+            cameraRef.current = null;
+            rendererRef.current = null;
+            sceneRef.current = null;
+            earthGroupRef.current = null;
+            cloudsMeshRef.current = null;
+        };
     }, []);
-
-    useEffect(() => {
-        updateCameraPosition(location.pathname);
-    }, [location.pathname]);
 
     return (
         <div ref={mountRef} style={{ position: 'relative', width: '100vw', height: '100vh' }}>

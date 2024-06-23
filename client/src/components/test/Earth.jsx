@@ -18,15 +18,16 @@ const Earth = ({ children }) => {
     const earthGroupRef = useRef(null);
     const cloudsMeshRef = useRef(null);
     const animationRef = useRef(null);
-    const location = useLocation();
     const debouncedHandleMouseMove = useRef(null);
     const targetPositionRef = useRef({ x: 0, y: 0, z: 4 });
-    const targetAngleRef = useRef({ x: 0, y: 0, z: 0 });
+    const lookAtTargetRef = useRef(new THREE.Vector3(0, 0, 0));
+    const currentLookAtRef = useRef(new THREE.Vector3(0, 0, 0));
+    const location = useLocation();
 
     const _setupCamera = () => {
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(targetPositionRef.current.x, targetPositionRef.current.y, targetPositionRef.current.z);
-        camera.rotation.set(targetAngleRef.current.x, targetAngleRef.current.y, targetAngleRef.current.z);
+        camera.lookAt(lookAtTargetRef.current);
         cameraRef.current = camera;
     };
 
@@ -84,18 +85,20 @@ const Earth = ({ children }) => {
         debouncedHandleMouseMove.current = debounce(handleMouseMove, 10);
     }, [handleMouseMove]);
 
-    const updateCameraPosition = (pathname) => {
+    const updateCamera = (pathname) => {
         if (pathname === "/") {
             targetPositionRef.current.z = 4;
+            lookAtTargetRef.current.set(0, 0, 0);
             document.addEventListener('mousemove', debouncedHandleMouseMove.current);
         } else if (pathname === "/about") {
             document.removeEventListener('mousemove', debouncedHandleMouseMove.current);
             targetPositionRef.current = { x: 0, y: 0, z: 2 };
+            lookAtTargetRef.current.set(0, 3, 0);
         }
     };
 
     useEffect(() => {
-        updateCameraPosition(location.pathname);
+        updateCamera(location.pathname);
     }, [location.pathname]);
 
     useEffect(() => {
@@ -135,7 +138,9 @@ const Earth = ({ children }) => {
             camera.position.x += (targetPositionRef.current.x * cameraSpeed - camera.position.x) * 0.05;
             camera.position.y += (targetPositionRef.current.y - camera.position.y) * 0.05;
             camera.position.z += (targetPositionRef.current.z - camera.position.z) * 0.05;
-            camera.lookAt(scene.position);
+
+            currentLookAtRef.current.lerp(lookAtTargetRef.current, 0.05);
+            camera.lookAt(currentLookAtRef.current);
 
             renderer.render(scene, camera);
             animationRef.current = requestAnimationFrame(animate);
